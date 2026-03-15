@@ -189,11 +189,11 @@ function tick() {
   for (const [id, p] of players) {
     const pr = r2m(p.mass);
     const spd = (5.5 + p.upgrades[0]*1.5) / (0.7 + pr*0.018);
-    const wx = p.targetX, wy = p.targetY;
-    const dx = wx-p.x, dy = wy-p.y, dl = Math.hypot(dx,dy)+0.001;
-    if (dl > pr+5) {
-      p.vx += (dx/dl*spd - p.vx)*0.13*dt;
-      p.vy += (dy/dl*spd - p.vy)*0.13*dt;
+    const mvx = p.moveX || 0, mvy = p.moveY || 0;
+    const len = Math.hypot(mvx, mvy);
+    if (len > 0) {
+      p.vx += (mvx/len*spd - p.vx)*0.13*dt;
+      p.vy += (mvy/len*spd - p.vy)*0.13*dt;
     } else { p.vx *= 0.85; p.vy *= 0.85; }
     p.x = clamp(p.x + p.vx*dt, pr, WORLD-pr);
     p.y = clamp(p.y + p.vy*dt, pr, WORLD-pr);
@@ -350,6 +350,8 @@ function buildState() {
     players: [...players.values()].map(p=>({
       id:p.id, name:p.name, x:p.x, y:p.y, mass:p.mass, hp:p.hp, maxHp: p.maxHp||100,
       score:p.score, hue:p.hue, upgrades:p.upgrades,
+      angle: Math.atan2((p.targetY||0) - p.y, (p.targetX||WORLD/2) - p.x),
+      weapon: p.selectedWeapon || 0,
     })),
     bots: bots.map(b=>({
       id:b.id, name:b.name, x:b.x, y:b.y, mass:b.mass, hp:b.hp, maxHp:b.maxHp,
@@ -397,6 +399,7 @@ const server = Bun.serve({
           x: rnd(300, WORLD-300), y: rnd(300, WORLD-300),
           mass: 20, vx:0, vy:0, hp:100, maxHp:100,
           targetX: WORLD/2, targetY: WORLD/2,
+          moveX: 0, moveY: 0,
           hue, score:0, deaths:0,
           lastShot: 0,
           lastDamaged: 0,
@@ -414,6 +417,7 @@ const server = Bun.serve({
         const p = players.get(ws._playerId);
         if (!p) return;
         if (msg.tx !== undefined) { p.targetX = msg.tx; p.targetY = msg.ty; }
+        if (msg.mvx !== undefined) { p.moveX = msg.mvx; p.moveY = msg.mvy; }
 
         // weapon selection — validate player owns the gun
         if (msg.selWeapon !== undefined) {

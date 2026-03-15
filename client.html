@@ -345,6 +345,7 @@
     <div id="startScreen">
         <h1>CELL SHOOTER</h1>
         <p>Multijugador en tiempo real · Bots con IA · Mejoras de arma</p>
+        <p>WASD para moverse · Ratón para apuntar · Clic para disparar</p>
         <p>🟢 Verde = huye &nbsp; 🟡 Amarillo = neutral &nbsp; 🔴 Rojo = te caza</p>
         <input class="screen-input" id="nameInput" placeholder="Tu nombre" maxlength="16" autocomplete="off" />
         <div id="connectStatus">Conectando al servidor…</div>
@@ -408,6 +409,7 @@
         let ws, myId, myHue;
         let mx = window.innerWidth / 2, my = window.innerHeight / 2;
         let camX = 0, camY = 0;
+        const keys = {};
         let gameState = { players: [], bots: [], food: [], bullets: [], explosions: [] };
         let myUpgrades = [0,0,0,0,0,0,0,0];
         let myScore = 0;
@@ -617,10 +619,17 @@
                 if (!muted) playShoot(getWeapon());
             }
 
+            let mvx = 0, mvy = 0;
+            if (keys['w'] || keys['arrowup'])    mvy -= 1;
+            if (keys['s'] || keys['arrowdown'])  mvy += 1;
+            if (keys['a'] || keys['arrowleft'])  mvx -= 1;
+            if (keys['d'] || keys['arrowright']) mvx += 1;
+
             ws.send(JSON.stringify({
                 type: 'input',
                 tx: mx + camX,
                 ty: my + camY,
+                mvx, mvy,
                 shoot,
                 selWeapon: selectedWeapon,
             }));
@@ -853,6 +862,34 @@
                 ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
                 ctx.fillStyle = `hsl(${p.hue},70%,50%)`; ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,100,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+
+                // gun barrel
+                const pupgrades = p.upgrades || [0,0,0,0,0,0,0,0];
+                const ga = p.angle || 0;
+                const gw = 5 + pupgrades[2];
+                const gl = pr + 12 + pupgrades[2] * 2;
+                const weapon = p.weapon || 0;
+                ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ga);
+                if (weapon === 7 && pupgrades[7]) {
+                    ctx.fillStyle = '#ff9f43';
+                    ctx.fillRect(pr - 4, -(gw+4)/2, gl * 0.78, gw + 4);
+                    ctx.fillStyle = '#8b4513';
+                    ctx.fillRect(pr - 4, -(gw+4)/2, 6, gw + 4);
+                } else if (weapon === 6 && pupgrades[6]) {
+                    ctx.fillStyle = '#a0a0a0';
+                    ctx.fillRect(pr - 4, -gw/2 - gw - 2, gl * 0.68, gw * 0.85);
+                    ctx.fillStyle = '#d0d0d0';
+                    ctx.fillRect(pr - 4, -gw/2, gl * 0.68, gw);
+                    ctx.fillStyle = '#a0a0a0';
+                    ctx.fillRect(pr - 4, gw/2 + 2, gl * 0.68, gw * 0.85);
+                } else {
+                    ctx.fillStyle = '#d0d0d0';
+                    ctx.fillRect(pr - 4, -gw / 2, gl, gw);
+                    if (pupgrades[3] || (weapon === 4 && pupgrades[4])) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
+                    if (weapon === 4 && pupgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
+                }
+                ctx.restore();
+
                 ctx.font = `bold ${Math.max(11, pr * 0.5)}px Courier New`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff'; ctx.fillText(p.name.slice(0, 8), p.x, p.y);
@@ -952,6 +989,7 @@
         window.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
         window.addEventListener('contextmenu', e => e.preventDefault());
         window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
             if (!running) return;
             if (e.key === '1') selectWeapon(0);
             if (e.key === '2') selectWeapon(4);
@@ -959,6 +997,9 @@
             if (e.key === '4') selectWeapon(7);
             if (e.key === 'q' || e.key === 'Q') cycleWeapon();
             if (e.key === 'm' || e.key === 'M') toggleMute();
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key.toLowerCase()] = false;
         });
 
         requestAnimationFrame(loop);
