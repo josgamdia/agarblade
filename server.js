@@ -1,5 +1,13 @@
-// Cell Shooter — Multiplayer Server (Bun)
-// Run: bun server.js
+// Cell Shooter — Multiplayer Server (Node.js)
+// Run: node server.js
+
+import { createServer } from 'http';
+import { readFileSync, existsSync } from 'fs';
+import { join, extname } from 'path';
+import { fileURLToPath } from 'url';
+import { WebSocketServer } from 'ws';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const PORT = 3000;
 const WORLD = 3000;
@@ -112,7 +120,6 @@ function triggerExplosion(x, y, ownerId, isPlayer, dmg, now) {
 
 // ─── bot AI ──────────────────────────────────────────────────────────────────
 function botAI(e, dt, now) {
-  const allCells = [...players.values(), ...bots.filter(b => b !== e)];
   const er = r2m(e.mass);
   let fx = 0, fy = 0;
 
@@ -290,7 +297,6 @@ function tick() {
       const er = r2m(e.mass);
       const d = dst(p.x, p.y, e.x, e.y);
       if (d < pr+er-5) {
-        // agario: instant eat if bot is completely inside player
         if (d + er < pr && p.mass > e.mass * 1.1) {
           p.score += Math.floor(e.mass * 3); p.mass += e.mass * 0.7;
           bots.splice(i, 1); addBot(); continue;
@@ -318,7 +324,7 @@ function tick() {
     p.maxHp = maxHp;
     const timeSinceDmg = now - (p.lastDamaged||0);
     if (timeSinceDmg > 5000 && p.hp < maxHp) {
-      const rate = (1 + (p.upgrades[5]||0)*0.6) * dt * 0.065; // ~2-5 HP/sec
+      const rate = (1 + (p.upgrades[5]||0)*0.6) * dt * 0.065;
       p.hp = Math.min(maxHp, p.hp + rate);
     }
   }
@@ -363,127 +369,154 @@ function buildState() {
   };
 }
 
-// ─── WebSocket server ────────────────────────────────────────────────────────
-const server = Bun.serve({
-  port: PORT,
-  fetch(req, server) {
-    const url = new URL(req.url);
-    if (url.pathname === '/ws') {
-      const ok = server.upgrade(req);
-      if (!ok) return new Response('WS upgrade failed', { status: 500 });
-      return;
+// ─── Static file serving (Vite build output) ─────────────────────────────────
+const DIST_DIR = join(__dirname, 'dist');
+const HAS_DIST = existsSync(DIST_DIR);
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.css':  'text/css',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.ico':  'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.json': 'application/json',
+};
+
+function serveStatic(pathname, res) {
+  if (!HAS_DIST) return false;
+  const filePath = join(DIST_DIR, pathname);
+  if (!existsSync(filePath)) return false;
+  try {
+    const data = readFileSync(filePath);
+    const ext = extname(pathname);
+    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+    res.end(data);
+    return true;
+  } catch { return false; }
+}
+
+// ─── HTTP + WebSocket server ─────────────────────────────────────────────────
+const httpServer = createServer((req, res) => {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    if (serveStatic('/index.html', res)) return;
+    res.writeHead(503, { 'Content-Type': 'text/plain' });
+    res.end('Run "npm run build" first to generate the client.');
+    return;
+  }
+
+  if (serveStatic(url.pathname, res)) return;
+
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not found');
+});
+
+const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+wss.on('connection', (ws) => {
+  ws._tempId = 'tmp_' + nextId++;
+
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw); } catch { return; }
+
+    if (msg.type === 'join') {
+      const id = nextId++;
+      const hue = Math.floor(rnd(0,360));
+      const player = {
+        id, ws,
+        name: (msg.name||'Jugador').slice(0,16),
+        x: rnd(300, WORLD-300), y: rnd(300, WORLD-300),
+        mass: 20, vx:0, vy:0, hp:100, maxHp:100,
+        targetX: WORLD/2, targetY: WORLD/2,
+        moveX: 0, moveY: 0,
+        hue, score:0, deaths:0,
+        lastShot: 0,
+        lastDamaged: 0,
+        upgrades: [0,0,0,0,0,0,0,0],
+        selectedWeapon: 0,
+      };
+      players.set(id, player);
+      ws._playerId = id;
+      ws.send(JSON.stringify({ type:'joined', id, hue }));
+      console.log(`[+] ${player.name} joined (id=${id}), total=${players.size}`);
     }
-    if (url.pathname === '/' || url.pathname === '/index.html') {
-      return new Response(Bun.file('./client.html'), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      });
+
+    if (msg.type === 'input') {
+      const p = players.get(ws._playerId);
+      if (!p) return;
+      if (msg.tx !== undefined) { p.targetX = msg.tx; p.targetY = msg.ty; }
+      if (msg.mvx !== undefined) { p.moveX = msg.mvx; p.moveY = msg.mvy; }
+
+      if (msg.selWeapon !== undefined) {
+        const sw = msg.selWeapon;
+        if (sw === 0 || (sw === 4 && p.upgrades[4]) || (sw === 6 && p.upgrades[6]) || (sw === 7 && p.upgrades[7])) {
+          p.selectedWeapon = sw;
+        }
+      }
+
+      if (msg.shoot) {
+        const now = Date.now();
+        const sw = p.selectedWeapon || 0;
+        const cd = getCooldown(p.upgrades, sw);
+        if (now - p.lastShot >= cd) {
+          p.lastShot = now;
+          const dmg = 10 + p.upgrades[2]*8;
+          let count = 1, spread = 0, explosive = false;
+          if      (sw === 7 && p.upgrades[7]) { count = 1; explosive = true; }
+          else if (sw === 4 && p.upgrades[4]) { count = 3; spread = 0.13; }
+          else if (sw === 6 && p.upgrades[6]) { count = 6; spread = 0.26; }
+          else if (p.upgrades[3])             { count = 2; spread = 0.13; }
+          fireB(p.id, p.x, p.y, msg.tx, msg.ty, true, dmg, count, spread, explosive);
+        }
+      }
     }
-    return new Response('Not found', { status: 404 });
-  },
 
-  websocket: {
-    open(ws) {
-      ws._tempId = 'tmp_' + nextId++;
-    },
-
-    message(ws, raw) {
-      let msg;
-      try { msg = JSON.parse(raw); } catch { return; }
-
-      if (msg.type === 'join') {
-        const id = nextId++;
-        const hue = Math.floor(rnd(0,360));
-        const player = {
-          id, ws,
-          name: (msg.name||'Jugador').slice(0,16),
-          x: rnd(300, WORLD-300), y: rnd(300, WORLD-300),
-          mass: 20, vx:0, vy:0, hp:100, maxHp:100,
-          targetX: WORLD/2, targetY: WORLD/2,
-          moveX: 0, moveY: 0,
-          hue, score:0, deaths:0,
-          lastShot: 0,
-          lastDamaged: 0,
-          // speed, cadence, damage, double, minigun, health, shotgun, grenade
-          upgrades: [0,0,0,0,0,0,0,0],
-          selectedWeapon: 0, // 0=pistol/doble, 4=minigun, 6=shotgun, 7=grenade
-        };
-        players.set(id, player);
-        ws._playerId = id;
-        ws.send(JSON.stringify({ type:'joined', id, hue }));
-        console.log(`[+] ${player.name} joined (id=${id}), total=${players.size}`);
+    if (msg.type === 'upgrade') {
+      const p = players.get(ws._playerId);
+      if (!p) return;
+      const costs = [50, 75, 100, 200, 500, 80, 300, 700];
+      const maxes = [5, 5, 5, 1, 1, 5, 1, 1];
+      const i = msg.index;
+      if (i < 0 || i > 7) return;
+      const cost = costs[i] * (p.upgrades[i]+1);
+      if (p.upgrades[i] >= maxes[i]) return;
+      if (p.score < cost) return;
+      p.score -= cost;
+      p.upgrades[i]++;
+      if (i === 5) {
+        p.maxHp = 100 + p.upgrades[5]*25;
+        p.hp = Math.min(p.hp + 25, p.maxHp);
       }
+      ws.send(JSON.stringify({ type:'upgraded', upgrades: p.upgrades, score: p.score }));
+    }
+  });
 
-      if (msg.type === 'input') {
-        const p = players.get(ws._playerId);
-        if (!p) return;
-        if (msg.tx !== undefined) { p.targetX = msg.tx; p.targetY = msg.ty; }
-        if (msg.mvx !== undefined) { p.moveX = msg.mvx; p.moveY = msg.mvy; }
-
-        // weapon selection — validate player owns the gun
-        if (msg.selWeapon !== undefined) {
-          const sw = msg.selWeapon;
-          if (sw === 0 || (sw === 4 && p.upgrades[4]) || (sw === 6 && p.upgrades[6]) || (sw === 7 && p.upgrades[7])) {
-            p.selectedWeapon = sw;
-          }
-        }
-
-        if (msg.shoot) {
-          const now = Date.now();
-          const sw = p.selectedWeapon || 0;
-          const cd = getCooldown(p.upgrades, sw);
-          if (now - p.lastShot >= cd) {
-            p.lastShot = now;
-            const dmg = 10 + p.upgrades[2]*8;
-            let count = 1, spread = 0, explosive = false;
-            if      (sw === 7 && p.upgrades[7]) { count = 1; explosive = true; }
-            else if (sw === 4 && p.upgrades[4]) { count = 3; spread = 0.13; }
-            else if (sw === 6 && p.upgrades[6]) { count = 6; spread = 0.26; }
-            else if (p.upgrades[3])             { count = 2; spread = 0.13; }
-            fireB(p.id, p.x, p.y, msg.tx, msg.ty, true, dmg, count, spread, explosive);
-          }
-        }
-      }
-
-      if (msg.type === 'upgrade') {
-        const p = players.get(ws._playerId);
-        if (!p) return;
-        const costs = [50, 75, 100, 200, 500, 80, 300, 700];
-        const maxes = [5, 5, 5, 1, 1, 5, 1, 1];
-        const i = msg.index;
-        if (i < 0 || i > 7) return;
-        const cost = costs[i] * (p.upgrades[i]+1);
-        if (p.upgrades[i] >= maxes[i]) return;
-        if (p.score < cost) return;
-        p.score -= cost;
-        p.upgrades[i]++;
-        // immediately update maxHp if health upgraded
-        if (i === 5) {
-          p.maxHp = 100 + p.upgrades[5]*25;
-          p.hp = Math.min(p.hp + 25, p.maxHp); // heal on upgrade
-        }
-        ws.send(JSON.stringify({ type:'upgraded', upgrades: p.upgrades, score: p.score }));
-      }
-    },
-
-    close(ws) {
-      const id = ws._playerId;
-      if (id) {
-        const p = players.get(id);
-        if (p) console.log(`[-] ${p.name} disconnected`);
-        players.delete(id);
-      }
-    },
-  },
+  ws.on('close', () => {
+    const id = ws._playerId;
+    if (id) {
+      const p = players.get(id);
+      if (p) console.log(`[-] ${p.name} disconnected`);
+      players.delete(id);
+    }
+  });
 });
 
 function getCooldown(upg, sw=0) {
-  if (sw === 7 && upg[7]) return Math.max(400, 1200 - upg[1]*80); // grenade
-  if (sw === 4 && upg[4]) return Math.max(50,  100  - upg[1]*10); // minigun
-  if (sw === 6 && upg[6]) return Math.max(300, 800  - upg[1]*60); // shotgun
-  return Math.max(60, 420 - upg[1]*60);                           // pistol/double
+  if (sw === 7 && upg[7]) return Math.max(400, 1200 - upg[1]*80);
+  if (sw === 4 && upg[4]) return Math.max(50,  100  - upg[1]*10);
+  if (sw === 6 && upg[6]) return Math.max(300, 800  - upg[1]*60);
+  return Math.max(60, 420 - upg[1]*60);
 }
 
 // start tick loop
 setInterval(tick, TICK_RATE);
 
-console.log(`\n🎮 Cell Shooter running at http://localhost:${PORT}\n`);
+httpServer.listen(PORT, () => {
+  console.log(`\n🎮 Cell Shooter running at http://localhost:${PORT}\n`);
+});
