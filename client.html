@@ -64,20 +64,23 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 8px;
+            gap: 6px;
             pointer-events: all;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 780px;
         }
 
         .upg {
             background: rgba(0, 0, 0, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
-            padding: 8px 14px;
+            padding: 7px 12px;
             color: #ccc;
             font-size: 12px;
             cursor: pointer;
             text-align: center;
-            min-width: 88px;
+            min-width: 84px;
             transition: all 0.15s;
         }
 
@@ -126,17 +129,9 @@
         }
 
         @keyframes fo {
-            0% {
-                opacity: 1
-            }
-
-            70% {
-                opacity: 1
-            }
-
-            100% {
-                opacity: 0
-            }
+            0% { opacity: 1 }
+            70% { opacity: 1 }
+            100% { opacity: 0 }
         }
 
         #crosshair {
@@ -150,7 +145,7 @@
 
         #legend {
             position: absolute;
-            bottom: 62px;
+            bottom: 75px;
             right: 155px;
             display: flex;
             flex-direction: column;
@@ -287,6 +282,12 @@
         #deathScreen {
             display: none;
         }
+
+        #regenIndicator {
+            color: #44ff88;
+            font-size: 11px;
+            margin-left: 4px;
+        }
     </style>
 </head>
 
@@ -304,7 +305,7 @@
     <div id="startScreen">
         <h1>CELL SHOOTER</h1>
         <p>Multijugador en tiempo real · Bots con IA · Mejoras de arma</p>
-        <p>🟢 Borde verde = huye &nbsp; 🟡 Amarillo = neutral &nbsp; 🔴 Rojo = te caza</p>
+        <p>🟢 Verde = huye &nbsp; 🟡 Amarillo = neutral &nbsp; 🔴 Rojo = te caza</p>
         <input class="screen-input" id="nameInput" placeholder="Tu nombre" maxlength="16" autocomplete="off" />
         <div id="connectStatus">Conectando al servidor…</div>
         <button class="screen-btn" id="joinBtn" disabled onclick="joinGame()">▶ ENTRAR</button>
@@ -323,7 +324,7 @@
             <div class="stat">Masa: <b id="sMass">20</b></div>
             <div class="stat">Puntos: <b id="sScore">0</b></div>
             <div class="stat">Arma: <b id="sWeapon">Pistola</b></div>
-            <div class="stat">HP: <b id="sHp" style="color:#44ff88">100</b></div>
+            <div class="stat">HP: <b id="sHp" style="color:#44ff88">100</b><span id="regenIndicator"></span></div>
         </div>
         <div id="leaderboard">
             <h3>🏆 RANKING</h3>
@@ -334,20 +335,17 @@
             <div class="leg"><span class="dot" style="background:#44ff88"></span>Pequeño — huye</div>
             <div class="leg"><span class="dot" style="background:#f7c948"></span>Similar — neutral</div>
             <div class="leg"><span class="dot" style="background:#ff4455"></span>Grande — te caza</div>
-            <div class="leg"><span class="dot" style="border:2px solid gold;background:transparent"></span>Con pistola
-            </div>
+            <div class="leg"><span class="dot" style="border:2px solid gold;background:transparent"></span>Con pistola</div>
         </div>
         <div id="upgrades">
-            <div class="upg" id="u0" onclick="buyUpg(0)">🏃 Velocidad<span class="cost" id="c0">50pts</span><span
-                    class="lvl" id="l0">0/5</span></div>
-            <div class="upg" id="u1" onclick="buyUpg(1)">⚡ Cadencia<span class="cost" id="c1">75pts</span><span
-                    class="lvl" id="l1">0/5</span></div>
-            <div class="upg" id="u2" onclick="buyUpg(2)">💥 Daño<span class="cost" id="c2">100pts</span><span
-                    class="lvl" id="l2">0/5</span></div>
-            <div class="upg" id="u3" onclick="buyUpg(3)">🔫 Doble<span class="cost" id="c3">200pts</span><span
-                    class="lvl" id="l3">0/1</span></div>
-            <div class="upg" id="u4" onclick="buyUpg(4)">🔥 Metralleta<span class="cost" id="c4">500pts</span><span
-                    class="lvl" id="l4">0/1</span></div>
+            <div class="upg" id="u0" onclick="buyUpg(0)">🏃 Velocidad<span class="cost" id="c0">50pts</span><span class="lvl" id="l0">0/5</span></div>
+            <div class="upg" id="u1" onclick="buyUpg(1)">⚡ Cadencia<span class="cost" id="c1">75pts</span><span class="lvl" id="l1">0/5</span></div>
+            <div class="upg" id="u2" onclick="buyUpg(2)">💥 Daño<span class="cost" id="c2">100pts</span><span class="lvl" id="l2">0/5</span></div>
+            <div class="upg" id="u3" onclick="buyUpg(3)">🔫 Doble<span class="cost" id="c3">200pts</span><span class="lvl" id="l3">0/1</span></div>
+            <div class="upg" id="u4" onclick="buyUpg(4)">🔥 Metralleta<span class="cost" id="c4">500pts</span><span class="lvl" id="l4">0/1</span></div>
+            <div class="upg" id="u5" onclick="buyUpg(5)">❤️ Salud<span class="cost" id="c5">80pts</span><span class="lvl" id="l5">0/5</span></div>
+            <div class="upg" id="u6" onclick="buyUpg(6)">🔫 Escopeta<span class="cost" id="c6">300pts</span><span class="lvl" id="l6">0/1</span></div>
+            <div class="upg" id="u7" onclick="buyUpg(7)">💣 Granadas<span class="cost" id="c7">700pts</span><span class="lvl" id="l7">0/1</span></div>
         </div>
     </div>
 
@@ -360,19 +358,120 @@
         resize(); window.addEventListener('resize', resize);
 
         const WORLD = 3000;
-        const COSTS = [50, 75, 100, 200, 500];
-        const MAXES = [5, 5, 5, 1, 1];
+        // speed, cadence, damage, double, minigun, health, shotgun, grenade
+        const COSTS = [50, 75, 100, 200, 500, 80, 300, 700];
+        const MAXES = [5, 5, 5, 1, 1, 5, 1, 1];
 
         // ── state ───────────────────────────────────────────────────────────────────
         let ws, myId, myHue;
         let mx = window.innerWidth / 2, my = window.innerHeight / 2;
         let camX = 0, camY = 0;
-        let gameState = { players: [], bots: [], food: [], bullets: [] };
-        let myUpgrades = [0, 0, 0, 0, 0];
+        let gameState = { players: [], bots: [], food: [], bullets: [], explosions: [] };
+        let myUpgrades = [0,0,0,0,0,0,0,0];
         let myScore = 0;
         let running = false;
         let lastShotTime = 0;
         let mouseDown = false;
+        let prevHp = 100;
+        let seenExplosionIds = new Set();
+
+        // ── sound system (Web Audio API) ─────────────────────────────────────────────
+        let audioCtx = null;
+        function getAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+
+        function makeNoiseBuffer(ac, duration) {
+            const len = Math.floor(ac.sampleRate * duration);
+            const buf = ac.createBuffer(1, len, ac.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+            return buf;
+        }
+
+        function playShoot(weapon) {
+            try {
+                const ac = getAudio();
+                const t = ac.currentTime;
+                if (weapon === 'Metralleta') {
+                    // rapid tick
+                    const src = ac.createBufferSource();
+                    src.buffer = makeNoiseBuffer(ac, 0.04);
+                    const flt = ac.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 1000;
+                    const g = ac.createGain(); g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.04);
+                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    src.start(t);
+                } else if (weapon === 'Escopeta') {
+                    // loud blast
+                    const src = ac.createBufferSource();
+                    src.buffer = makeNoiseBuffer(ac, 0.18);
+                    const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 2500;
+                    const g = ac.createGain(); g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    src.start(t);
+                    // low thump
+                    const osc = ac.createOscillator(); const og = ac.createGain();
+                    osc.frequency.setValueAtTime(130, t); osc.frequency.exponentialRampToValueAtTime(40, t+0.1);
+                    og.gain.setValueAtTime(0.45, t); og.gain.exponentialRampToValueAtTime(0.001, t+0.12);
+                    osc.connect(og); og.connect(ac.destination); osc.start(t); osc.stop(t+0.12);
+                } else if (weapon === 'Granadas') {
+                    // low thwump
+                    const osc = ac.createOscillator(); const g = ac.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(190, t); osc.frequency.exponentialRampToValueAtTime(55, t+0.18);
+                    g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.22);
+                    osc.connect(g); g.connect(ac.destination); osc.start(t); osc.stop(t+0.22);
+                } else {
+                    // pistol / doble — sharp pop
+                    const src = ac.createBufferSource();
+                    src.buffer = makeNoiseBuffer(ac, 0.07);
+                    const flt = ac.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 1400; flt.Q.value = 0.6;
+                    const g = ac.createGain(); g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.08);
+                    src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                    src.start(t);
+                    const osc = ac.createOscillator(); const og = ac.createGain();
+                    osc.frequency.setValueAtTime(420, t); osc.frequency.exponentialRampToValueAtTime(90, t+0.06);
+                    og.gain.setValueAtTime(0.2, t); og.gain.exponentialRampToValueAtTime(0.001, t+0.07);
+                    osc.connect(og); og.connect(ac.destination); osc.start(t); osc.stop(t+0.07);
+                }
+            } catch(e) {}
+        }
+
+        function playExplosion() {
+            try {
+                const ac = getAudio();
+                const t = ac.currentTime;
+                const dur = 0.65;
+                const src = ac.createBufferSource();
+                src.buffer = makeNoiseBuffer(ac, dur);
+                const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 380;
+                const g = ac.createGain(); g.gain.setValueAtTime(0.75, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+                src.connect(flt); flt.connect(g); g.connect(ac.destination);
+                src.start(t);
+                // rumble
+                const osc = ac.createOscillator(); const og = ac.createGain();
+                osc.frequency.setValueAtTime(85, t); osc.frequency.exponentialRampToValueAtTime(18, t+0.45);
+                og.gain.setValueAtTime(0.55, t); og.gain.exponentialRampToValueAtTime(0.001, t+0.5);
+                osc.connect(og); og.connect(ac.destination); osc.start(t); osc.stop(t+0.5);
+            } catch(e) {}
+        }
+
+        function playHeal() {
+            try {
+                const ac = getAudio();
+                const t = ac.currentTime;
+                [440, 550, 660].forEach((freq, i) => {
+                    const osc = ac.createOscillator(); const g = ac.createGain();
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    g.gain.setValueAtTime(0, t + i*0.09);
+                    g.gain.linearRampToValueAtTime(0.07, t + i*0.09 + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + i*0.09 + 0.18);
+                    osc.connect(g); g.connect(ac.destination);
+                    osc.start(t + i*0.09); osc.stop(t + i*0.09 + 0.18);
+                });
+            } catch(e) {}
+        }
 
         // ── WS connection ────────────────────────────────────────────────────────────
         const WS_URL = `wss://${location.host}/ws`;
@@ -403,23 +502,32 @@
             }
             if (msg.type === 'state') {
                 gameState = msg.data;
-                // update my info from state
+                if (!gameState.explosions) gameState.explosions = [];
+
                 const me = gameState.players.find(p => p.id === myId);
                 if (me) {
+                    // heal sound
+                    if (me.hp > prevHp + 1.5) playHeal();
+                    prevHp = me.hp;
+
                     myScore = me.score;
-                    myUpgrades = me.upgrades;
+                    myUpgrades = me.upgrades || [0,0,0,0,0,0,0,0];
                     updateHUD(me);
                     updateUpgradeUI();
                     updateLeaderboard();
 
-                    // camera
                     const pr = Math.sqrt(me.mass) * 4;
                     camX = me.x - canvas.width / 2;
                     camY = me.y - canvas.height / 2;
                 }
+
+                // explosion sounds for new explosions
+                const currentExpIds = new Set(gameState.explosions.map(e => e.id));
+                currentExpIds.forEach(id => { if (!seenExplosionIds.has(id)) playExplosion(); });
+                seenExplosionIds = currentExpIds;
             }
             if (msg.type === 'upgraded') {
-                myUpgrades = msg.upgrades;
+                myUpgrades = msg.upgrades || [0,0,0,0,0,0,0,0];
                 myScore = msg.score;
                 updateUpgradeUI();
             }
@@ -446,7 +554,6 @@
         }
 
         function respawn() {
-            // re-send join with same name
             const name = document.getElementById('nameInput').value.trim() || 'Jugador';
             ws.send(JSON.stringify({ type: 'join', name }));
         }
@@ -460,7 +567,10 @@
             const now = performance.now();
             const cd = getCooldown();
             const shoot = mouseDown && (now - lastShotTime >= cd);
-            if (shoot) lastShotTime = now;
+            if (shoot) {
+                lastShotTime = now;
+                playShoot(getWeapon());
+            }
 
             ws.send(JSON.stringify({
                 type: 'input',
@@ -477,10 +587,18 @@
         }
 
         function getCooldown() {
-            return myUpgrades[4] ? (100 - myUpgrades[1] * 10) : (420 - myUpgrades[1] * 60);
+            if (myUpgrades[7]) return Math.max(400, 1200 - myUpgrades[1]*80);
+            if (myUpgrades[4]) return Math.max(50,  100  - myUpgrades[1]*10);
+            if (myUpgrades[6]) return Math.max(300, 800  - myUpgrades[1]*60);
+            return Math.max(60, 420 - myUpgrades[1]*60);
         }
+
         function getWeapon() {
-            return myUpgrades[4] ? 'Metralleta' : myUpgrades[3] ? 'Doble' : 'Pistola';
+            if (myUpgrades[7]) return 'Granadas';
+            if (myUpgrades[4]) return 'Metralleta';
+            if (myUpgrades[6]) return 'Escopeta';
+            if (myUpgrades[3]) return 'Doble';
+            return 'Pistola';
         }
 
         function updateHUD(me) {
@@ -488,9 +606,14 @@
             document.getElementById('sScore').textContent = me.score;
             document.getElementById('sWeapon').textContent = getWeapon();
             const hp = Math.max(0, Math.floor(me.hp));
+            const maxHp = me.maxHp || 100;
             const el = document.getElementById('sHp');
-            el.textContent = hp;
-            el.style.color = hp > 60 ? '#44ff88' : hp > 30 ? '#f7c948' : '#ff4455';
+            el.textContent = hp + '/' + maxHp;
+            el.style.color = hp > maxHp*0.6 ? '#44ff88' : hp > maxHp*0.3 ? '#f7c948' : '#ff4455';
+
+            // show regen indicator when healing
+            const regenEl = document.getElementById('regenIndicator');
+            regenEl.textContent = (hp < maxHp && me.hp > prevHp) ? ' ↑' : '';
 
             if (me.hp <= 0) {
                 running = false;
@@ -501,13 +624,17 @@
         }
 
         function updateUpgradeUI() {
-            const upgNames = ['Velocidad', 'Cadencia', 'Daño', 'Doble', 'Metralleta'];
-            myUpgrades.forEach((lv, i) => {
+            for (let i = 0; i < COSTS.length; i++) {
+                const lv = myUpgrades[i] || 0;
                 const cost = COSTS[i] * (lv + 1);
-                document.getElementById('c' + i).textContent = lv >= MAXES[i] ? 'MAX' : cost + 'pts';
-                document.getElementById('l' + i).textContent = lv + '/' + MAXES[i];
-                document.getElementById('u' + i).classList.toggle('maxed', lv >= MAXES[i] || myScore < cost);
-            });
+                const cel = document.getElementById('c' + i);
+                const lel = document.getElementById('l' + i);
+                const uel = document.getElementById('u' + i);
+                if (!cel) continue;
+                cel.textContent = lv >= MAXES[i] ? 'MAX' : cost + 'pts';
+                lel.textContent = lv + '/' + MAXES[i];
+                uel.classList.toggle('maxed', lv >= MAXES[i] || myScore < cost);
+            }
         }
 
         function updateLeaderboard() {
@@ -536,6 +663,26 @@
         }
         function r2m(m) { return Math.sqrt(m) * 4; }
 
+        function drawExplosions() {
+            (gameState.explosions || []).forEach(exp => {
+                const maxLife = 15;
+                const progress = 1 - exp.life / maxLife; // 0→1
+                const r = exp.r * (0.2 + progress * 0.8);
+                const alpha = Math.max(0, 1 - progress * 1.1);
+                const grad = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, r);
+                grad.addColorStop(0,   `rgba(255, 240, 100, ${alpha})`);
+                grad.addColorStop(0.3, `rgba(255, 140, 20,  ${alpha * 0.85})`);
+                grad.addColorStop(0.7, `rgba(200, 40,  0,   ${alpha * 0.5})`);
+                grad.addColorStop(1,   `rgba(80,  0,   0,   0)`);
+                ctx.beginPath(); ctx.arc(exp.x, exp.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = grad; ctx.fill();
+                // outer shockwave ring
+                ctx.beginPath(); ctx.arc(exp.x, exp.y, r * 1.15, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 200, 80, ${alpha * 0.4})`;
+                ctx.lineWidth = 3 + progress * 4; ctx.stroke();
+            });
+        }
+
         function draw() {
             const W = canvas.width, H = canvas.height;
             ctx.fillStyle = '#0a0a12'; ctx.fillRect(0, 0, W, H);
@@ -560,9 +707,19 @@
 
             // bullets
             gameState.bullets.forEach(b => {
-                ctx.beginPath(); ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
-                ctx.fillStyle = b.isPlayer ? '#b8aaff' : '#ff4455'; ctx.fill();
+                if (b.explosive) {
+                    // grenade: orange pulsing orb
+                    ctx.beginPath(); ctx.arc(b.x, b.y, 9, 0, Math.PI * 2);
+                    ctx.fillStyle = b.isPlayer ? '#ff9f43' : '#ff5555'; ctx.fill();
+                    ctx.strokeStyle = b.isPlayer ? '#ffe08a' : '#ff8888'; ctx.lineWidth = 2; ctx.stroke();
+                } else {
+                    ctx.beginPath(); ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
+                    ctx.fillStyle = b.isPlayer ? '#b8aaff' : '#ff4455'; ctx.fill();
+                }
             });
+
+            // explosions (behind entities but above bullets)
+            drawExplosions();
 
             // bots
             gameState.bots.forEach(e => {
@@ -586,15 +743,18 @@
             gameState.players.forEach(p => {
                 if (p.id === myId) return;
                 const pr = r2m(p.mass);
+                const maxHp = p.maxHp || 100;
                 ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
                 ctx.fillStyle = `hsl(${p.hue},70%,50%)`; ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,100,0.9)'; ctx.lineWidth = 3; ctx.stroke(); // yellow = human player
+                ctx.strokeStyle = 'rgba(255,255,100,0.9)'; ctx.lineWidth = 3; ctx.stroke();
                 ctx.font = `bold ${Math.max(11, pr * 0.5)}px Courier New`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff'; ctx.fillText(p.name.slice(0, 8), p.x, p.y);
                 const phw = pr * 1.3, phh = 6, phx = p.x - phw, phy = p.y - pr - 18;
                 ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(phx, phy, phw * 2, phh);
-                ctx.fillStyle = '#44ff88'; ctx.fillRect(phx, phy, (p.hp / 100) * phw * 2, phh);
+                const hpRatio = Math.max(0, Math.min(1, p.hp / maxHp));
+                ctx.fillStyle = hpRatio > 0.6 ? '#44ff88' : hpRatio > 0.3 ? '#f7c948' : '#ff4455';
+                ctx.fillRect(phx, phy, hpRatio * phw * 2, phh);
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(phx, phy, phw * 2, phh);
             });
 
@@ -604,21 +764,45 @@
                 ctx.beginPath(); ctx.arc(me.x, me.y, pr, 0, Math.PI * 2);
                 ctx.fillStyle = `hsl(${myHue},70%,55%)`; ctx.fill();
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-                // gun barrel
+
+                // gun barrel — different per weapon
                 const wx = mx + camX, wy = my + camY;
                 const ga = Math.atan2(wy - me.y, wx - me.x);
                 const gl = pr + 12 + myUpgrades[2] * 2, gw = 5 + myUpgrades[2];
                 ctx.save(); ctx.translate(me.x, me.y); ctx.rotate(ga);
-                ctx.fillStyle = '#d0d0d0'; ctx.fillRect(pr - 4, -gw / 2, gl, gw);
-                if (myUpgrades[3] || myUpgrades[4]) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
-                if (myUpgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
+
+                if (myUpgrades[7]) {
+                    // grenade launcher: fat orange barrel
+                    ctx.fillStyle = '#ff9f43';
+                    ctx.fillRect(pr - 4, -(gw+4)/2, gl * 0.78, gw + 4);
+                    ctx.fillStyle = '#8b4513';
+                    ctx.fillRect(pr - 4, -(gw+4)/2, 6, gw + 4);
+                } else if (myUpgrades[6]) {
+                    // shotgun: 3 stacked barrels
+                    ctx.fillStyle = '#a0a0a0';
+                    ctx.fillRect(pr - 4, -gw/2 - gw - 2, gl * 0.68, gw * 0.85);
+                    ctx.fillStyle = '#d0d0d0';
+                    ctx.fillRect(pr - 4, -gw/2,            gl * 0.68, gw);
+                    ctx.fillStyle = '#a0a0a0';
+                    ctx.fillRect(pr - 4, gw/2 + 2,         gl * 0.68, gw * 0.85);
+                } else {
+                    ctx.fillStyle = '#d0d0d0';
+                    ctx.fillRect(pr - 4, -gw / 2, gl, gw);
+                    if (myUpgrades[3] || myUpgrades[4]) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
+                    if (myUpgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
+                }
                 ctx.restore();
+
                 ctx.font = `bold ${Math.max(11, pr * 0.5)}px Courier New`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fillText(me.name.slice(0, 8), me.x, me.y);
+
+                const maxHp = me.maxHp || 100;
                 const phw = pr * 1.3, phh = 6, phx = me.x - phw, phy = me.y - pr - 18;
                 ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(phx, phy, phw * 2, phh);
-                ctx.fillStyle = '#44ff88'; ctx.fillRect(phx, phy, (me.hp / 100) * phw * 2, phh);
+                const hpRatio = Math.max(0, Math.min(1, me.hp / maxHp));
+                ctx.fillStyle = hpRatio > 0.6 ? '#44ff88' : hpRatio > 0.3 ? '#f7c948' : '#ff4455';
+                ctx.fillRect(phx, phy, hpRatio * phw * 2, phh);
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(phx, phy, phw * 2, phh);
             }
 
@@ -630,12 +814,17 @@
             ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.strokeRect(mX, mY, mW, mH);
             const sc = mW / WORLD;
             gameState.food.forEach(f => { ctx.fillStyle = `hsl(${f.hue},70%,60%)`; ctx.fillRect(mX + f.x * sc - 1, mY + f.y * sc - 1, 2, 2); });
-            gameState.bots.forEach(e => { ctx.beginPath(); ctx.arc(mX + e.x * sc, mY + e.y * sc, 3, 0, Math.PI * 2); ctx.fillStyle = borderColor(e.mass, myMass); ctx.fill(); });
+            gameState.bots.forEach(e => { ctx.beginPath(); ctx.arc(mX + e.x * sc, mY + e.y * sc, 3, 0, Math.PI * 2); ctx.fillStyle = borderColor(e.mass, myMass || 20); ctx.fill(); });
             gameState.players.forEach(p => {
                 const c = p.id === myId ? '#7c6cf7' : '#ffff44';
                 ctx.beginPath(); ctx.arc(mX + p.x * sc, mY + p.y * sc, p.id === myId ? 5 : 4, 0, Math.PI * 2);
                 ctx.fillStyle = c; ctx.fill();
                 if (p.id === myId) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+            });
+            // explosions on minimap
+            (gameState.explosions || []).forEach(exp => {
+                ctx.beginPath(); ctx.arc(mX + exp.x * sc, mY + exp.y * sc, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,140,0,0.8)'; ctx.fill();
             });
         }
 
@@ -650,11 +839,13 @@
             document.getElementById('crosshair').style.left = mx + 'px';
             document.getElementById('crosshair').style.top = my + 'px';
         });
-        window.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
+        window.addEventListener('mousedown', e => {
+            if (e.button === 0) { mouseDown = true; getAudio(); } // init audio on first click
+        });
         window.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
         window.addEventListener('contextmenu', e => e.preventDefault());
 
-        requestAnimationFrame(loop); // start render even before game starts
+        requestAnimationFrame(loop);
     </script>
 </body>
 
