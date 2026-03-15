@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <title>Cell Shooter — Multijugador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: #0a0a12;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .stat b {
+            color: #fff;
+        }
+
+        #upgrades {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            pointer-events: all;
+        }
+
+        .upg {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            color: #ccc;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            min-width: 88px;
+            transition: all 0.15s;
+        }
+
+        .upg:hover {
+            border-color: #7c6cf7;
+            background: rgba(124, 108, 247, 0.25);
+            color: #fff;
+        }
+
+        .upg.maxed {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .upg .cost {
+            color: #f7c948;
+            font-weight: bold;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .upg .lvl {
+            font-size: 10px;
+            color: #555;
+            display: block;
+        }
+
+        #kills {
+            position: absolute;
+            top: 55px;
+            right: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .kf {
+            background: rgba(0, 0, 0, 0.75);
+            border-left: 3px solid #7c6cf7;
+            padding: 3px 10px;
+            font-size: 12px;
+            color: #ccc;
+            border-radius: 4px;
+            animation: fo 3s forwards;
+        }
+
+        @keyframes fo {
+            0% {
+                opacity: 1
+            }
+
+            70% {
+                opacity: 1
+            }
+
+            100% {
+                opacity: 0
+            }
+        }
+
+        #crosshair {
+            position: fixed;
+            pointer-events: none;
+            width: 22px;
+            height: 22px;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 62px;
+            right: 155px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .leg {
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        #leaderboard {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 14px;
+            min-width: 160px;
+        }
+
+        #leaderboard h3 {
+            color: #f7c948;
+            font-size: 13px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .lb-row {
+            font-size: 12px;
+            color: #ccc;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 2px 0;
+        }
+
+        .lb-me {
+            color: #7c6cf7;
+            font-weight: bold;
+        }
+
+        /* ── screens ── */
+        #startScreen,
+        #deathScreen {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        #startScreen h1,
+        #deathScreen h1 {
+            color: #fff;
+            font-size: 40px;
+            letter-spacing: 6px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 30px #7c6cf7;
+        }
+
+        #startScreen p,
+        #deathScreen p {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 6px;
+            text-align: center;
+            max-width: 440px;
+            line-height: 1.8;
+        }
+
+        .screen-input {
+            margin: 16px 0 6px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            padding: 10px 20px;
+            text-align: center;
+            outline: none;
+            width: 240px;
+        }
+
+        .screen-input:focus {
+            border-color: #7c6cf7;
+        }
+
+        .screen-btn {
+            margin-top: 14px;
+            background: #7c6cf7;
+            border: none;
+            color: #fff;
+            padding: 13px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .screen-btn:hover {
+            background: #9a8ef9;
+        }
+
+        .screen-btn:disabled {
+            background: #444;
+            cursor: default;
+        }
+
+        #connectStatus {
+            font-size: 12px;
+            color: #f7c948;
+            margin-top: 8px;
+            height: 16px;
+        }
+
+        #deathScreen {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="c"></canvas>
+    <svg id="crosshair" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="8" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+        <line x1="12" y1="2" x2="12" y2="7" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+        <line x1="12" y1="17" x2="12" y2="22" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+        <line x1="2" y1="12" x2="7" y2="12" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+        <line x1="17" y1="12" x2="22" y2="12" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+    </svg>
+
+    <!-- Start Screen -->
+    <div id="startScreen">
+        <h1>CELL SHOOTER</h1>
+        <p>Multijugador en tiempo real · Bots con IA · Mejoras de arma</p>
+        <p>🟢 Borde verde = huye &nbsp; 🟡 Amarillo = neutral &nbsp; 🔴 Rojo = te caza</p>
+        <input class="screen-input" id="nameInput" placeholder="Tu nombre" maxlength="16" autocomplete="off" />
+        <div id="connectStatus">Conectando al servidor…</div>
+        <button class="screen-btn" id="joinBtn" disabled onclick="joinGame()">▶ ENTRAR</button>
+    </div>
+
+    <!-- Death Screen -->
+    <div id="deathScreen">
+        <h1>ELIMINADO</h1>
+        <p id="deathMsg"></p>
+        <button class="screen-btn" onclick="respawn()">▶ VOLVER A JUGAR</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="ui" style="display:none;">
+        <div id="hud">
+            <div class="stat">Masa: <b id="sMass">20</b></div>
+            <div class="stat">Puntos: <b id="sScore">0</b></div>
+            <div class="stat">Arma: <b id="sWeapon">Pistola</b></div>
+            <div class="stat">HP: <b id="sHp" style="color:#44ff88">100</b></div>
+        </div>
+        <div id="leaderboard">
+            <h3>🏆 RANKING</h3>
+            <div id="lbRows"></div>
+        </div>
+        <div id="kills"></div>
+        <div id="legend">
+            <div class="leg"><span class="dot" style="background:#44ff88"></span>Pequeño — huye</div>
+            <div class="leg"><span class="dot" style="background:#f7c948"></span>Similar — neutral</div>
+            <div class="leg"><span class="dot" style="background:#ff4455"></span>Grande — te caza</div>
+            <div class="leg"><span class="dot" style="border:2px solid gold;background:transparent"></span>Con pistola
+            </div>
+        </div>
+        <div id="upgrades">
+            <div class="upg" id="u0" onclick="buyUpg(0)">🏃 Velocidad<span class="cost" id="c0">50pts</span><span
+                    class="lvl" id="l0">0/5</span></div>
+            <div class="upg" id="u1" onclick="buyUpg(1)">⚡ Cadencia<span class="cost" id="c1">75pts</span><span
+                    class="lvl" id="l1">0/5</span></div>
+            <div class="upg" id="u2" onclick="buyUpg(2)">💥 Daño<span class="cost" id="c2">100pts</span><span
+                    class="lvl" id="l2">0/5</span></div>
+            <div class="upg" id="u3" onclick="buyUpg(3)">🔫 Doble<span class="cost" id="c3">200pts</span><span
+                    class="lvl" id="l3">0/1</span></div>
+            <div class="upg" id="u4" onclick="buyUpg(4)">🔥 Metralleta<span class="cost" id="c4">500pts</span><span
+                    class="lvl" id="l4">0/1</span></div>
+        </div>
+    </div>
+
+    <script>
+        // ── canvas ──────────────────────────────────────────────────────────────────
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        document.body.style.cursor = 'none';
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize(); window.addEventListener('resize', resize);
+
+        const WORLD = 3000;
+        const COSTS = [50, 75, 100, 200, 500];
+        const MAXES = [5, 5, 5, 1, 1];
+
+        // ── state ───────────────────────────────────────────────────────────────────
+        let ws, myId, myHue;
+        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+        let camX = 0, camY = 0;
+        let gameState = { players: [], bots: [], food: [], bullets: [] };
+        let myUpgrades = [0, 0, 0, 0, 0];
+        let myScore = 0;
+        let running = false;
+        let lastShotTime = 0;
+        let mouseDown = false;
+
+        // ── WS connection ────────────────────────────────────────────────────────────
+        const WS_URL = `wss://${location.host}/ws`;
+        const statusEl = document.getElementById('connectStatus');
+        const joinBtn = document.getElementById('joinBtn');
+
+        function connect() {
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
+                statusEl.textContent = '✅ Conectado — ingresa tu nombre';
+                joinBtn.disabled = false;
+            };
+            ws.onclose = () => {
+                statusEl.textContent = '❌ Sin conexión — reintentando…';
+                joinBtn.disabled = true;
+                setTimeout(connect, 2000);
+            };
+            ws.onerror = () => { };
+            ws.onmessage = e => handleMsg(JSON.parse(e.data));
+        }
+        connect();
+
+        function handleMsg(msg) {
+            if (msg.type === 'joined') {
+                myId = msg.id;
+                myHue = msg.hue;
+                startGame();
+            }
+            if (msg.type === 'state') {
+                gameState = msg.data;
+                // update my info from state
+                const me = gameState.players.find(p => p.id === myId);
+                if (me) {
+                    myScore = me.score;
+                    myUpgrades = me.upgrades;
+                    updateHUD(me);
+                    updateUpgradeUI();
+                    updateLeaderboard();
+
+                    // camera
+                    const pr = Math.sqrt(me.mass) * 4;
+                    camX = me.x - canvas.width / 2;
+                    camY = me.y - canvas.height / 2;
+                }
+            }
+            if (msg.type === 'upgraded') {
+                myUpgrades = msg.upgrades;
+                myScore = msg.score;
+                updateUpgradeUI();
+            }
+            if (msg.type === 'killed') {
+                kfeed(msg.text);
+            }
+        }
+
+        // ── join ─────────────────────────────────────────────────────────────────────
+        function joinGame() {
+            const name = document.getElementById('nameInput').value.trim() || 'Jugador';
+            ws.send(JSON.stringify({ type: 'join', name }));
+        }
+        document.getElementById('nameInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !joinBtn.disabled) joinGame();
+        });
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('deathScreen').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            running = true;
+            requestAnimationFrame(loop);
+        }
+
+        function respawn() {
+            // re-send join with same name
+            const name = document.getElementById('nameInput').value.trim() || 'Jugador';
+            ws.send(JSON.stringify({ type: 'join', name }));
+        }
+
+        // ── input loop ───────────────────────────────────────────────────────────────
+        function sendInput() {
+            if (!ws || ws.readyState !== 1 || !myId) return;
+            const me = gameState.players.find(p => p.id === myId);
+            if (!me) return;
+
+            const now = performance.now();
+            const cd = getCooldown();
+            const shoot = mouseDown && (now - lastShotTime >= cd);
+            if (shoot) lastShotTime = now;
+
+            ws.send(JSON.stringify({
+                type: 'input',
+                tx: mx + camX,
+                ty: my + camY,
+                shoot,
+            }));
+        }
+        setInterval(sendInput, 33);
+
+        function buyUpg(i) {
+            if (!ws || ws.readyState !== 1) return;
+            ws.send(JSON.stringify({ type: 'upgrade', index: i }));
+        }
+
+        function getCooldown() {
+            return myUpgrades[4] ? (100 - myUpgrades[1] * 10) : (420 - myUpgrades[1] * 60);
+        }
+        function getWeapon() {
+            return myUpgrades[4] ? 'Metralleta' : myUpgrades[3] ? 'Doble' : 'Pistola';
+        }
+
+        function updateHUD(me) {
+            document.getElementById('sMass').textContent = Math.floor(me.mass);
+            document.getElementById('sScore').textContent = me.score;
+            document.getElementById('sWeapon').textContent = getWeapon();
+            const hp = Math.max(0, Math.floor(me.hp));
+            const el = document.getElementById('sHp');
+            el.textContent = hp;
+            el.style.color = hp > 60 ? '#44ff88' : hp > 30 ? '#f7c948' : '#ff4455';
+
+            if (me.hp <= 0) {
+                running = false;
+                document.getElementById('deathMsg').textContent = `Puntuación: ${me.score}`;
+                document.getElementById('deathScreen').style.display = 'flex';
+                document.getElementById('ui').style.display = 'none';
+            }
+        }
+
+        function updateUpgradeUI() {
+            const upgNames = ['Velocidad', 'Cadencia', 'Daño', 'Doble', 'Metralleta'];
+            myUpgrades.forEach((lv, i) => {
+                const cost = COSTS[i] * (lv + 1);
+                document.getElementById('c' + i).textContent = lv >= MAXES[i] ? 'MAX' : cost + 'pts';
+                document.getElementById('l' + i).textContent = lv + '/' + MAXES[i];
+                document.getElementById('u' + i).classList.toggle('maxed', lv >= MAXES[i] || myScore < cost);
+            });
+        }
+
+        function updateLeaderboard() {
+            const all = [...gameState.players].sort((a, b) => b.score - a.score).slice(0, 8);
+            const html = all.map((p, i) => {
+                const cls = p.id === myId ? 'lb-row lb-me' : 'lb-row';
+                const prefix = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+                return `<div class="${cls}"><span>${prefix} ${p.name.slice(0, 10)}</span><span>${p.score}</span></div>`;
+            }).join('');
+            document.getElementById('lbRows').innerHTML = html;
+        }
+
+        function kfeed(txt) {
+            const d = document.getElementById('kills');
+            const el = document.createElement('div');
+            el.className = 'kf'; el.textContent = txt; d.prepend(el);
+            setTimeout(() => el.remove(), 3100);
+            while (d.children.length > 5) d.lastChild.remove();
+        }
+
+        // ── render ───────────────────────────────────────────────────────────────────
+        const CHASE = 1.25, FLEE = 0.80;
+        function borderColor(eMass, myMass) {
+            const r = eMass / myMass;
+            return r >= CHASE ? '#ff4455' : r <= FLEE ? '#44ff88' : '#f7c948';
+        }
+        function r2m(m) { return Math.sqrt(m) * 4; }
+
+        function draw() {
+            const W = canvas.width, H = canvas.height;
+            ctx.fillStyle = '#0a0a12'; ctx.fillRect(0, 0, W, H);
+            ctx.save(); ctx.translate(-camX, -camY);
+
+            const me = gameState.players.find(p => p.id === myId);
+            const myMass = me ? me.mass : 20;
+
+            // grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            const gs = 80, sx = Math.floor(camX / gs) * gs, sy = Math.floor(camY / gs) * gs;
+            for (let x = sx; x < camX + W + gs; x += gs) { ctx.beginPath(); ctx.moveTo(x, camY); ctx.lineTo(x, camY + H); ctx.stroke(); }
+            for (let y = sy; y < camY + H + gs; y += gs) { ctx.beginPath(); ctx.moveTo(camX, y); ctx.lineTo(camX + W, y); ctx.stroke(); }
+            ctx.strokeStyle = 'rgba(100,100,255,0.3)'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, WORLD, WORLD);
+
+            // food
+            gameState.food.forEach(f => {
+                ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${f.hue},70%,60%)`; ctx.fill();
+                ctx.strokeStyle = `hsl(${f.hue},70%,80%)`; ctx.lineWidth = 1; ctx.stroke();
+            });
+
+            // bullets
+            gameState.bullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = b.isPlayer ? '#b8aaff' : '#ff4455'; ctx.fill();
+            });
+
+            // bots
+            gameState.bots.forEach(e => {
+                const er = r2m(e.mass);
+                ctx.beginPath(); ctx.arc(e.x, e.y, er, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${e.hue},65%,48%)`; ctx.fill();
+                ctx.strokeStyle = borderColor(e.mass, myMass); ctx.lineWidth = 2.5; ctx.stroke();
+                if (e.gun) { ctx.beginPath(); ctx.arc(e.x, e.y, er + 5, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,220,50,0.6)'; ctx.lineWidth = 2; ctx.stroke(); }
+                const fs = Math.max(10, er * 0.5);
+                ctx.font = `bold ${fs}px Courier New`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText(e.name.slice(0, 6), e.x, e.y);
+                if (e.maxHp) {
+                    const bw = er * 2.2, bh = 5, bx = e.x - bw / 2, by = e.y - er - 14;
+                    ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(bx, by, bw, bh);
+                    ctx.fillStyle = '#44ff88'; ctx.fillRect(bx, by, (e.hp / e.maxHp) * bw, bh);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
+                }
+            });
+
+            // other players
+            gameState.players.forEach(p => {
+                if (p.id === myId) return;
+                const pr = r2m(p.mass);
+                ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${p.hue},70%,50%)`; ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,100,0.9)'; ctx.lineWidth = 3; ctx.stroke(); // yellow = human player
+                ctx.font = `bold ${Math.max(11, pr * 0.5)}px Courier New`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#fff'; ctx.fillText(p.name.slice(0, 8), p.x, p.y);
+                const phw = pr * 1.3, phh = 6, phx = p.x - phw, phy = p.y - pr - 18;
+                ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(phx, phy, phw * 2, phh);
+                ctx.fillStyle = '#44ff88'; ctx.fillRect(phx, phy, (p.hp / 100) * phw * 2, phh);
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(phx, phy, phw * 2, phh);
+            });
+
+            // my player
+            if (me) {
+                const pr = r2m(me.mass);
+                ctx.beginPath(); ctx.arc(me.x, me.y, pr, 0, Math.PI * 2);
+                ctx.fillStyle = `hsl(${myHue},70%,55%)`; ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+                // gun barrel
+                const wx = mx + camX, wy = my + camY;
+                const ga = Math.atan2(wy - me.y, wx - me.x);
+                const gl = pr + 12 + myUpgrades[2] * 2, gw = 5 + myUpgrades[2];
+                ctx.save(); ctx.translate(me.x, me.y); ctx.rotate(ga);
+                ctx.fillStyle = '#d0d0d0'; ctx.fillRect(pr - 4, -gw / 2, gl, gw);
+                if (myUpgrades[3] || myUpgrades[4]) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
+                if (myUpgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
+                ctx.restore();
+                ctx.font = `bold ${Math.max(11, pr * 0.5)}px Courier New`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fillText(me.name.slice(0, 8), me.x, me.y);
+                const phw = pr * 1.3, phh = 6, phx = me.x - phw, phy = me.y - pr - 18;
+                ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(phx, phy, phw * 2, phh);
+                ctx.fillStyle = '#44ff88'; ctx.fillRect(phx, phy, (me.hp / 100) * phw * 2, phh);
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(phx, phy, phw * 2, phh);
+            }
+
+            ctx.restore();
+
+            // minimap
+            const mW = 130, mH = 130, mX = W - mW - 14, mY = H - mH - 75;
+            ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(mX, mY, mW, mH);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.strokeRect(mX, mY, mW, mH);
+            const sc = mW / WORLD;
+            gameState.food.forEach(f => { ctx.fillStyle = `hsl(${f.hue},70%,60%)`; ctx.fillRect(mX + f.x * sc - 1, mY + f.y * sc - 1, 2, 2); });
+            gameState.bots.forEach(e => { ctx.beginPath(); ctx.arc(mX + e.x * sc, mY + e.y * sc, 3, 0, Math.PI * 2); ctx.fillStyle = borderColor(e.mass, myMass); ctx.fill(); });
+            gameState.players.forEach(p => {
+                const c = p.id === myId ? '#7c6cf7' : '#ffff44';
+                ctx.beginPath(); ctx.arc(mX + p.x * sc, mY + p.y * sc, p.id === myId ? 5 : 4, 0, Math.PI * 2);
+                ctx.fillStyle = c; ctx.fill();
+                if (p.id === myId) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+            });
+        }
+
+        function loop() {
+            if (running) draw();
+            requestAnimationFrame(loop);
+        }
+
+        // ── events ───────────────────────────────────────────────────────────────────
+        window.addEventListener('mousemove', e => {
+            mx = e.clientX; my = e.clientY;
+            document.getElementById('crosshair').style.left = mx + 'px';
+            document.getElementById('crosshair').style.top = my + 'px';
+        });
+        window.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
+        window.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        requestAnimationFrame(loop); // start render even before game starts
+    </script>
+</body>
+
+</html>
