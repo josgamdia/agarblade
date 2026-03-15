@@ -288,7 +288,13 @@ function tick() {
     for (let i = bots.length-1; i >= 0; i--) {
       const e = bots[i];
       const er = r2m(e.mass);
-      if (dst(p.x,p.y,e.x,e.y) < pr+er-5) {
+      const d = dst(p.x, p.y, e.x, e.y);
+      if (d < pr+er-5) {
+        // agario: instant eat if bot is completely inside player
+        if (d + er < pr && p.mass > e.mass * 1.1) {
+          p.score += Math.floor(e.mass * 3); p.mass += e.mass * 0.7;
+          bots.splice(i, 1); addBot(); continue;
+        }
         if (e.mass > p.mass*1.1)      { p.hp -= 0.6*dt; p.mass = Math.max(10,p.mass-0.08*dt); p.lastDamaged = now; }
         else if (p.mass > e.mass*1.1) { e.hp -= 2*dt; }
         if (e.hp <= 0) { p.score += Math.floor(e.mass*3); p.mass += e.mass*0.2; bots.splice(i,1); addBot(); }
@@ -396,6 +402,7 @@ const server = Bun.serve({
           lastDamaged: 0,
           // speed, cadence, damage, double, minigun, health, shotgun, grenade
           upgrades: [0,0,0,0,0,0,0,0],
+          selectedWeapon: 0, // 0=pistol/doble, 4=minigun, 6=shotgun, 7=grenade
         };
         players.set(id, player);
         ws._playerId = id;
@@ -408,17 +415,26 @@ const server = Bun.serve({
         if (!p) return;
         if (msg.tx !== undefined) { p.targetX = msg.tx; p.targetY = msg.ty; }
 
+        // weapon selection — validate player owns the gun
+        if (msg.selWeapon !== undefined) {
+          const sw = msg.selWeapon;
+          if (sw === 0 || (sw === 4 && p.upgrades[4]) || (sw === 6 && p.upgrades[6]) || (sw === 7 && p.upgrades[7])) {
+            p.selectedWeapon = sw;
+          }
+        }
+
         if (msg.shoot) {
           const now = Date.now();
-          const cd = getCooldown(p.upgrades);
+          const sw = p.selectedWeapon || 0;
+          const cd = getCooldown(p.upgrades, sw);
           if (now - p.lastShot >= cd) {
             p.lastShot = now;
             const dmg = 10 + p.upgrades[2]*8;
             let count = 1, spread = 0, explosive = false;
-            if (p.upgrades[7])       { count = 1; explosive = true; spread = 0; }
-            else if (p.upgrades[4])  { count = 3; spread = 0.13; }
-            else if (p.upgrades[6])  { count = 6; spread = 0.26; }
-            else if (p.upgrades[3])  { count = 2; spread = 0.13; }
+            if      (sw === 7 && p.upgrades[7]) { count = 1; explosive = true; }
+            else if (sw === 4 && p.upgrades[4]) { count = 3; spread = 0.13; }
+            else if (sw === 6 && p.upgrades[6]) { count = 6; spread = 0.26; }
+            else if (p.upgrades[3])             { count = 2; spread = 0.13; }
             fireB(p.id, p.x, p.y, msg.tx, msg.ty, true, dmg, count, spread, explosive);
           }
         }
@@ -456,11 +472,11 @@ const server = Bun.serve({
   },
 });
 
-function getCooldown(upg) {
-  if (upg[7]) return Math.max(400, 1200 - upg[1]*80);   // grenade: 1200ms base, very slow
-  if (upg[4]) return Math.max(50,  100  - upg[1]*10);   // minigun: 100ms base
-  if (upg[6]) return Math.max(300, 800  - upg[1]*60);   // shotgun: 800ms base
-  return Math.max(60, 420 - upg[1]*60);                 // pistol/double: 420ms base
+function getCooldown(upg, sw=0) {
+  if (sw === 7 && upg[7]) return Math.max(400, 1200 - upg[1]*80); // grenade
+  if (sw === 4 && upg[4]) return Math.max(50,  100  - upg[1]*10); // minigun
+  if (sw === 6 && upg[6]) return Math.max(300, 800  - upg[1]*60); // shotgun
+  return Math.max(60, 420 - upg[1]*60);                           // pistol/double
 }
 
 // start tick loop

@@ -288,6 +288,46 @@
             font-size: 11px;
             margin-left: 4px;
         }
+
+        #weaponBar {
+            position: absolute;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            pointer-events: all;
+        }
+
+        .wslot {
+            background: rgba(0,0,0,0.8);
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 4px 10px;
+            color: #888;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            min-width: 76px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .wslot:hover { border-color: rgba(255,255,255,0.4); color: #ccc; }
+
+        .wslot.active {
+            border-color: #7c6cf7;
+            background: rgba(124,108,247,0.35);
+            color: #fff;
+        }
+
+        .wslot.locked {
+            opacity: 0.25;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .wslot .wkey { color: #f7c948; font-size: 10px; display: block; margin-bottom: 1px; }
     </style>
 </head>
 
@@ -325,6 +365,7 @@
             <div class="stat">Puntos: <b id="sScore">0</b></div>
             <div class="stat">Arma: <b id="sWeapon">Pistola</b></div>
             <div class="stat">HP: <b id="sHp" style="color:#44ff88">100</b><span id="regenIndicator"></span></div>
+            <div class="stat" id="muteBtn" onclick="toggleMute()" style="cursor:pointer;pointer-events:all;" title="Silenciar (M)"><span id="muteIcon">🔊</span> <b id="muteLabel">Sonido</b></div>
         </div>
         <div id="leaderboard">
             <h3>🏆 RANKING</h3>
@@ -347,6 +388,7 @@
             <div class="upg" id="u6" onclick="buyUpg(6)">🔫 Escopeta<span class="cost" id="c6">300pts</span><span class="lvl" id="l6">0/1</span></div>
             <div class="upg" id="u7" onclick="buyUpg(7)">💣 Granadas<span class="cost" id="c7">700pts</span><span class="lvl" id="l7">0/1</span></div>
         </div>
+        <div id="weaponBar"></div>
     </div>
 
     <script>
@@ -374,6 +416,8 @@
         let mouseDown = false;
         let prevHp = 100;
         let seenExplosionIds = new Set();
+        let muted = false;
+        let selectedWeapon = 0; // 0=pistol/doble, 4=minigun, 6=shotgun, 7=grenade
 
         // ── sound system (Web Audio API) ─────────────────────────────────────────────
         let audioCtx = null;
@@ -507,7 +551,7 @@
                 const me = gameState.players.find(p => p.id === myId);
                 if (me) {
                     // heal sound
-                    if (me.hp > prevHp + 1.5) playHeal();
+                    if (me.hp > prevHp + 1.5 && !muted) playHeal();
                     prevHp = me.hp;
 
                     myScore = me.score;
@@ -523,7 +567,7 @@
 
                 // explosion sounds for new explosions
                 const currentExpIds = new Set(gameState.explosions.map(e => e.id));
-                currentExpIds.forEach(id => { if (!seenExplosionIds.has(id)) playExplosion(); });
+                currentExpIds.forEach(id => { if (!seenExplosionIds.has(id) && !muted) playExplosion(); });
                 seenExplosionIds = currentExpIds;
             }
             if (msg.type === 'upgraded') {
@@ -550,6 +594,7 @@
             document.getElementById('deathScreen').style.display = 'none';
             document.getElementById('ui').style.display = 'block';
             running = true;
+            updateWeaponBar();
             requestAnimationFrame(loop);
         }
 
@@ -569,7 +614,7 @@
             const shoot = mouseDown && (now - lastShotTime >= cd);
             if (shoot) {
                 lastShotTime = now;
-                playShoot(getWeapon());
+                if (!muted) playShoot(getWeapon());
             }
 
             ws.send(JSON.stringify({
@@ -577,6 +622,7 @@
                 tx: mx + camX,
                 ty: my + camY,
                 shoot,
+                selWeapon: selectedWeapon,
             }));
         }
         setInterval(sendInput, 33);
@@ -587,18 +633,56 @@
         }
 
         function getCooldown() {
-            if (myUpgrades[7]) return Math.max(400, 1200 - myUpgrades[1]*80);
-            if (myUpgrades[4]) return Math.max(50,  100  - myUpgrades[1]*10);
-            if (myUpgrades[6]) return Math.max(300, 800  - myUpgrades[1]*60);
+            if (selectedWeapon === 7 && myUpgrades[7]) return Math.max(400, 1200 - myUpgrades[1]*80);
+            if (selectedWeapon === 4 && myUpgrades[4]) return Math.max(50,  100  - myUpgrades[1]*10);
+            if (selectedWeapon === 6 && myUpgrades[6]) return Math.max(300, 800  - myUpgrades[1]*60);
             return Math.max(60, 420 - myUpgrades[1]*60);
         }
 
         function getWeapon() {
-            if (myUpgrades[7]) return 'Granadas';
-            if (myUpgrades[4]) return 'Metralleta';
-            if (myUpgrades[6]) return 'Escopeta';
+            if (selectedWeapon === 7 && myUpgrades[7]) return 'Granadas';
+            if (selectedWeapon === 4 && myUpgrades[4]) return 'Metralleta';
+            if (selectedWeapon === 6 && myUpgrades[6]) return 'Escopeta';
             if (myUpgrades[3]) return 'Doble';
             return 'Pistola';
+        }
+
+        function toggleMute() {
+            muted = !muted;
+            document.getElementById('muteIcon').textContent = muted ? '🔇' : '🔊';
+            document.getElementById('muteLabel').textContent = muted ? 'Silencio' : 'Sonido';
+        }
+
+        function cycleWeapon() {
+            const slots = [0, 4, 6, 7];
+            const owned = slots.filter(w => w === 0 || myUpgrades[w]);
+            const idx = owned.indexOf(selectedWeapon);
+            selectedWeapon = owned[(idx + 1) % owned.length];
+            updateWeaponBar();
+        }
+
+        function updateWeaponBar() {
+            const bar = document.getElementById('weaponBar');
+            if (!bar) return;
+            const weapons = [
+                { idx: 0, key: '1', label: 'Pistola' },
+                { idx: 4, key: '2', label: 'Metralleta' },
+                { idx: 6, key: '3', label: 'Escopeta' },
+                { idx: 7, key: '4', label: 'Granadas' },
+            ];
+            bar.innerHTML = weapons.map(w => {
+                const owned = w.idx === 0 || (myUpgrades[w.idx] || 0) > 0;
+                const active = selectedWeapon === w.idx && owned;
+                const cls = ['wslot', active ? 'active' : '', owned ? '' : 'locked'].filter(Boolean).join(' ');
+                return `<div class="${cls}" onclick="selectWeapon(${w.idx})"><span class="wkey">[${w.key}]</span>${w.label}</div>`;
+            }).join('');
+        }
+
+        function selectWeapon(idx) {
+            if (idx === 0 || (myUpgrades[idx] || 0) > 0) {
+                selectedWeapon = idx;
+                updateWeaponBar();
+            }
         }
 
         function updateHUD(me) {
@@ -635,6 +719,7 @@
                 lel.textContent = lv + '/' + MAXES[i];
                 uel.classList.toggle('maxed', lv >= MAXES[i] || myScore < cost);
             }
+            updateWeaponBar();
         }
 
         function updateLeaderboard() {
@@ -725,17 +810,38 @@
             gameState.bots.forEach(e => {
                 const er = r2m(e.mass);
                 ctx.beginPath(); ctx.arc(e.x, e.y, er, 0, Math.PI * 2);
-                ctx.fillStyle = `hsl(${e.hue},65%,48%)`; ctx.fill();
-                ctx.strokeStyle = borderColor(e.mass, myMass); ctx.lineWidth = 2.5; ctx.stroke();
-                if (e.gun) { ctx.beginPath(); ctx.arc(e.x, e.y, er + 5, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,220,50,0.6)'; ctx.lineWidth = 2; ctx.stroke(); }
+                ctx.fillStyle = `hsl(${e.hue},70%,55%)`; ctx.fill();
+                ctx.strokeStyle = borderColor(e.mass, myMass); ctx.lineWidth = 3; ctx.stroke();
+
+                if (e.gun) {
+                    // bright gold ring for gun bots
+                    ctx.beginPath(); ctx.arc(e.x, e.y, er + 7, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255,220,50,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+                    // cannon barrel pointing toward nearest player
+                    const nearestP = gameState.players.reduce((best, p) => {
+                        const d2 = Math.hypot(p.x - e.x, p.y - e.y);
+                        return (!best || d2 < best.d) ? { p, d: d2 } : best;
+                    }, null);
+                    if (nearestP) {
+                        const ang = Math.atan2(nearestP.p.y - e.y, nearestP.p.x - e.x);
+                        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(ang);
+                        ctx.fillStyle = '#c8b400';
+                        ctx.fillRect(er - 2, -3.5, er * 0.65 + 8, 7);
+                        ctx.restore();
+                    }
+                }
+
                 const fs = Math.max(10, er * 0.5);
                 ctx.font = `bold ${fs}px Courier New`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText(e.name.slice(0, 6), e.x, e.y);
+
                 if (e.maxHp) {
-                    const bw = er * 2.2, bh = 5, bx = e.x - bw / 2, by = e.y - er - 14;
-                    ctx.fillStyle = 'rgba(60,0,0,0.8)'; ctx.fillRect(bx, by, bw, bh);
-                    ctx.fillStyle = '#44ff88'; ctx.fillRect(bx, by, (e.hp / e.maxHp) * bw, bh);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
+                    const bw = er * 2.4, bh = 7, bx = e.x - bw / 2, by = e.y - er - 16;
+                    ctx.fillStyle = 'rgba(20,20,20,0.9)'; ctx.fillRect(bx, by, bw, bh);
+                    const hpRatio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+                    ctx.fillStyle = hpRatio > 0.6 ? '#44ff88' : hpRatio > 0.3 ? '#f7c948' : '#ff4455';
+                    ctx.fillRect(bx, by, hpRatio * bw, bh);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
                 }
             });
 
@@ -771,13 +877,13 @@
                 const gl = pr + 12 + myUpgrades[2] * 2, gw = 5 + myUpgrades[2];
                 ctx.save(); ctx.translate(me.x, me.y); ctx.rotate(ga);
 
-                if (myUpgrades[7]) {
+                if (selectedWeapon === 7 && myUpgrades[7]) {
                     // grenade launcher: fat orange barrel
                     ctx.fillStyle = '#ff9f43';
                     ctx.fillRect(pr - 4, -(gw+4)/2, gl * 0.78, gw + 4);
                     ctx.fillStyle = '#8b4513';
                     ctx.fillRect(pr - 4, -(gw+4)/2, 6, gw + 4);
-                } else if (myUpgrades[6]) {
+                } else if (selectedWeapon === 6 && myUpgrades[6]) {
                     // shotgun: 3 stacked barrels
                     ctx.fillStyle = '#a0a0a0';
                     ctx.fillRect(pr - 4, -gw/2 - gw - 2, gl * 0.68, gw * 0.85);
@@ -788,8 +894,9 @@
                 } else {
                     ctx.fillStyle = '#d0d0d0';
                     ctx.fillRect(pr - 4, -gw / 2, gl, gw);
-                    if (myUpgrades[3] || myUpgrades[4]) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
-                    if (myUpgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
+                    // double/minigun extra barrels
+                    if (myUpgrades[3] || (selectedWeapon === 4 && myUpgrades[4])) { ctx.fillRect(pr - 4, -gw / 2 - gw - 2, gl * 0.8, gw); }
+                    if (selectedWeapon === 4 && myUpgrades[4]) { ctx.fillRect(pr - 4, gw / 2 + 2, gl * 0.8, gw); }
                 }
                 ctx.restore();
 
@@ -844,6 +951,15 @@
         });
         window.addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
         window.addEventListener('contextmenu', e => e.preventDefault());
+        window.addEventListener('keydown', e => {
+            if (!running) return;
+            if (e.key === '1') selectWeapon(0);
+            if (e.key === '2') selectWeapon(4);
+            if (e.key === '3') selectWeapon(6);
+            if (e.key === '4') selectWeapon(7);
+            if (e.key === 'q' || e.key === 'Q') cycleWeapon();
+            if (e.key === 'm' || e.key === 'M') toggleMute();
+        });
 
         requestAnimationFrame(loop);
     </script>
