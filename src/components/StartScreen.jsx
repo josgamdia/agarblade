@@ -25,7 +25,7 @@ export default function StartScreen() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
         <p className="controls-hint">WASD moverse · Ratón apuntar · Clic disparar</p>
-        <p className="controls-hint">1-4 armas · Q ciclar · M silenciar</p>
+        <p className="controls-hint">1-4 armas · Q ciclar · M silenciar · ESC pausa</p>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>

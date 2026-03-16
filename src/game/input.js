@@ -13,7 +13,7 @@ export function getCooldown() {
   const sw = store.selectedWeapon;
   const upg = store.myUpgrades;
   if (sw === 7 && upg[7]) return Math.max(400, 1200 - upg[1] * 80);
-  if (sw === 4 && upg[4]) return Math.max(50, 100 - upg[1] * 10);
+  if (sw === 4 && upg[4]) return Math.max(100, 220 - upg[1] * 12);
   if (sw === 6 && upg[6]) return Math.max(300, 800 - upg[1] * 60);
   return Math.max(60, 420 - upg[1] * 60);
 }
@@ -50,6 +50,7 @@ export function buyUpg(i) {
 
 function sendInput() {
   if (!store.ws || store.ws.readyState !== 1 || !store.myId) return;
+  if (store.paused) return;
   const me = store.gameState.players.find(p => p.id === store.myId);
   if (!me) return;
 
@@ -101,7 +102,11 @@ function onContextMenu(e) {
 
 function onKeyDown(e) {
   store.keys[e.key.toLowerCase()] = true;
-  if (!store.running) return;
+  if (e.key === 'Escape' && store.running && !store.dead) {
+    store.update({ paused: !store.paused });
+    return;
+  }
+  if (!store.running || store.paused) return;
   if (e.key === '1') selectWeapon(0);
   if (e.key === '2') selectWeapon(4);
   if (e.key === '3') selectWeapon(6);

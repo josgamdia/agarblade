@@ -1,18 +1,18 @@
-import { useRef, useEffect } from 'react';
-import { initRenderer, destroyRenderer } from '../game/renderer.js';
-import { initInput, destroyInput } from '../game/input.js';
+import { useEffect, useRef } from 'react';
+import { createPhaserGame } from '../game/PhaserGame.js';
+import { destroyInput, initInput } from '../game/input.js';
 
 export default function GameCanvas() {
-  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    initRenderer(canvasRef.current);
+    const game = createPhaserGame(containerRef.current);
     initInput();
     return () => {
-      destroyRenderer();
       destroyInput();
+      game.destroy(true);
     };
   }, []);
 
-  return <canvas id="c" ref={canvasRef} />;
+  return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
 }

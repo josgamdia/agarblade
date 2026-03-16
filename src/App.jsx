@@ -4,7 +4,7 @@ import { store } from './game/state.js';
 import GameCanvas from './components/GameCanvas.jsx';
 import Crosshair from './components/Crosshair.jsx';
 import StartScreen from './components/StartScreen.jsx';
-import DeathScreen from './components/DeathScreen.jsx';
+import PauseMenu from './components/PauseMenu.jsx';
 import HUD from './components/HUD.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import KillFeed from './components/KillFeed.jsx';
@@ -14,7 +14,8 @@ import WeaponBar from './components/WeaponBar.jsx';
 
 export default function App() {
   const running = useGameState(s => s.running);
-  const dead = useGameState(s => s.dead);
+  const dead    = useGameState(s => s.dead);
+  const paused  = useGameState(s => s.paused);
   const [damageFlash, setDamageFlash] = useState(false);
 
   // Hide cursor when game is active
@@ -39,8 +40,8 @@ export default function App() {
       <GameCanvas />
       <Crosshair />
 
-      {!running && !dead && <StartScreen />}
-      {dead && <DeathScreen />}
+      {!running && !dead && !paused && <StartScreen />}
+      {(dead || paused) && <PauseMenu />}
 
       {running && (
         <>

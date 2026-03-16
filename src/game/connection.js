@@ -24,10 +24,10 @@ export function connect() {
 
 function handleMsg(msg) {
   if (msg.type === 'joined') {
-    store.myId = msg.id;
+    store.myId  = msg.id;
     store.myHue = msg.hue;
-    store.dead = false;
-    store.update({ running: true });
+    store.dead  = false;
+    store.update({ running: true, paused: false });
   }
 
   if (msg.type === 'state') {
@@ -45,11 +45,8 @@ function handleMsg(msg) {
       store.myScore = me.score;
       store.myUpgrades = me.upgrades || [0, 0, 0, 0, 0, 0, 0, 0];
 
-      const canvas = document.getElementById('c');
-      if (canvas) {
-        store.camX = me.x - canvas.width / 2;
-        store.camY = me.y - canvas.height / 2;
-      }
+      store.camX = me.x - window.innerWidth / 2;
+      store.camY = me.y - window.innerHeight / 2;
 
       // death detection
       if (me.hp <= 0 && !store.dead) {
@@ -84,7 +81,9 @@ function handleMsg(msg) {
 
 export function joinGame(name) {
   if (!store.ws || store.ws.readyState !== 1) return;
-  store.ws.send(JSON.stringify({ type: 'join', name: (name || 'Jugador').slice(0, 16) }));
+  const trimmed = (name || 'Jugador').slice(0, 16);
+  store.playerName = trimmed;
+  store.ws.send(JSON.stringify({ type: 'join', name: trimmed }));
 }
 
 export function respawn(name) {

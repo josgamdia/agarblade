@@ -36,7 +36,9 @@ export const store = {
   // ── UI state ──
   running: false,
   dead: false,
+  paused: false,
   deathScore: 0,
+  playerName: '',
   muted: false,
   selectedWeapon: 0, // 0=pistol/doble, 4=minigun, 6=shotgun, 7=grenade
   connectionStatus: 'Conectando al servidor…',

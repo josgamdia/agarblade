@@ -500,3 +500,209 @@ canvas {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+
+/* ═══ Pause Menu ═══ */
+#pauseMenu {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(10, 5, 30, 0.92), rgba(0, 0, 0, 0.95));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  animation: screenFadeIn 0.2s ease-out;
+  overflow-y: auto;
+}
+
+#pausePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 32px;
+  max-width: 700px;
+  width: 100%;
+}
+
+.pause-title {
+  font-family: var(--font-display);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-shadow: 0 0 30px var(--accent-glow);
+}
+
+.pause-death-score {
+  font-size: 15px;
+  color: rgba(255,255,255,0.65);
+  margin-top: -10px;
+}
+
+/* ═══ Skill Tree ═══ */
+#skillTreeSection {
+  width: 100%;
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.skill-tree-title {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.skill-score-line {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.skill-tree-layout {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.skill-main-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.skill-side-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.sk-arrow {
+  font-size: 14px;
+  color: rgba(124, 108, 247, 0.5);
+  line-height: 1;
+  margin: 2px 0;
+}
+
+.skill-weapon-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.sk-weapon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Skill node card */
+.sk-node {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-align: center;
+  min-width: 82px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.sk-node:not(.sk-maxed):not(.sk-locked):hover {
+  border-color: var(--accent);
+  background: rgba(124, 108, 247, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(124, 108, 247, 0.25);
+}
+
+.sk-node:not(.sk-maxed):not(.sk-locked):active {
+  transform: translateY(0);
+}
+
+.sk-node.sk-maxed {
+  border-color: rgba(68, 255, 136, 0.35);
+  background: rgba(68, 255, 136, 0.05);
+  cursor: default;
+}
+
+.sk-node.sk-locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sk-icon {
+  font-size: 18px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.sk-name {
+  font-size: 10px;
+  color: rgba(255,255,255,0.8);
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+.sk-pips {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin: 5px 0 3px;
+}
+
+.sk-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: all 0.2s;
+}
+
+.sk-pip.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 5px var(--accent-glow);
+}
+
+.sk-cost {
+  font-size: 9px;
+  color: var(--gold);
+  font-weight: 600;
+  display: block;
+}
+
+.sk-node.sk-maxed .sk-cost {
+  color: var(--green);
+}
+
+/* Pause action buttons */
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pause-restart-btn {
+  background: linear-gradient(135deg, #8b2020, #6b1515) !important;
+  box-shadow: 0 4px 20px rgba(200, 50, 50, 0.25) !important;
+}
+
+.pause-restart-btn:hover {
+  background: linear-gradient(135deg, #bb2020, #8b1515) !important;
+  box-shadow: 0 6px 28px rgba(200, 50, 50, 0.4) !important;
+}
